@@ -1,0 +1,86 @@
+
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Web;
+
+namespace PEGA.SI.One.Common
+{
+    /// <summary>
+    /// 使用7z类库,请先在要调用的程序根目录下创建zipLib文件夹,里面放7z的dll,exe等
+    /// </summary>
+    public class _7zipUtil
+    {
+
+        private static string get7zZipLib()
+        {
+            string path = Path.Combine(Environment.CurrentDirectory, "zipLib");
+            return path;
+        }
+        /// <summary>
+        /// 分卷压缩
+        /// </summary>
+        /// <param name="outPutFilePath">生成的文件名 eg: d:/1.7z (此文件不存在)</param>
+        /// <param name="FileFullPath">要压缩的文件名 eg: d:/1.xlsx (此文件存在)</param>
+        /// <param name="ZipSize">分卷大小,单位M eg: 1 </param>
+        /// <returns>返回分卷压缩后的路径。如果List为空则压缩异常</returns>
+        public static List<string> MutiZipFile(string outPutFilePath, string FileFullPath, int ZipSize = 10)
+        {
+            string arg = $@"7z a {outPutFilePath} {FileFullPath} -v{ZipSize}m";
+            string cmdExe = @"cd " + get7zZipLib() + " & " + arg;
+            List<string> list = new List<string>();
+
+            string temp = string.Empty;
+            for (int i = 0; i < 999; i++)
+            {
+                temp = $"{outPutFilePath}.{i.ToString().PadLeft(3, '0')}";
+                if (File.Exists(temp))
+                {
+                    File.Delete(temp);
+                }
+            }
+            if (RunCmd(cmdExe))
+            {
+                int fileCount = 1;
+                //D:\1.7z
+                do
+                {
+                    temp = $"{outPutFilePath}.{fileCount.ToString().PadLeft(3, '0')}";
+                    if (File.Exists(temp))
+                    {
+                        list.Add(temp);
+                    }
+                    fileCount++;
+                } while (File.Exists(temp));
+            }
+            return list;
+        }
+
+        private static bool RunCmd(string cmd)
+        {
+            bool b = false;
+            try
+            {
+                Process p = new Process();
+                p.StartInfo.FileName = "cmd.exe ";
+                p.StartInfo.UseShellExecute = false;
+                p.StartInfo.RedirectStandardInput = true;
+                p.StartInfo.RedirectStandardOutput = true;
+                p.StartInfo.RedirectStandardError = true;
+                p.StartInfo.CreateNoWindow = true;
+                p.Start();
+                p.StandardInput.WriteLine(cmd);
+                p.StandardInput.WriteLine("exit");
+                p.WaitForExit();
+                p.Close();
+                b = true;
+            }
+            catch (Exception)
+            {
+            }
+            return b;
+        }
+    }
+}
